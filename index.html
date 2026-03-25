@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stano HQ</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0f0f0f;color:#e8e8e6;min-height:100vh;padding:20px 16px 60px;}
+.wrap{max-width:520px;margin:0 auto;}
+.hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;}
+.hdr-l .sup{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#555;margin-bottom:3px;}
+.hdr-l .ttl{font-size:20px;font-weight:500;color:#e8e8e6;}
+.hdr-r{text-align:right;}
+.hdr-r .dt{font-size:12px;color:#888;}
+.hdr-r .sb{font-size:11px;color:#4ade80;margin-top:2px;}
+.tabs{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;padding-bottom:14px;margin-bottom:18px;border-bottom:0.5px solid #222;}
+.tabs::-webkit-scrollbar{display:none;}
+.tb{background:transparent;border:0.5px solid transparent;color:#666;padding:6px 13px;border-radius:8px;cursor:pointer;font-size:13px;white-space:nowrap;transition:all 0.15s;}
+.tb:hover{background:#1a1a1a;}
+.tb.active{background:#1e1e1e;border-color:#333;color:#e8e8e6;}
+.sec{display:none;}.sec.active{display:block;}
+.card{background:#161616;border:0.5px solid #222;border-radius:12px;padding:13px 15px;margin-bottom:9px;}
+.row{display:flex;align-items:center;gap:11px;padding:10px 13px;border-radius:8px;border:0.5px solid #222;margin-bottom:7px;cursor:pointer;transition:background 0.12s;}
+.row:hover{background:#1a1a1a;}
+.slbl{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#555;margin-bottom:9px;}
+.circle{width:22px;height:22px;border-radius:50%;border:1.5px solid #333;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;}
+.circle.done{background:#0d2a1f;border-color:#1a4a30;color:#4ade80;}
+.circle.skip{border-style:dashed;opacity:0.35;}
+.sq{width:18px;height:18px;border-radius:4px;border:1.5px solid #333;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;cursor:pointer;}
+.sq.done{background:#0d1f2a;border-color:#1a3a4a;color:#38bdf8;}
+.badge{font-size:10px;padding:2px 7px;border-radius:20px;margin-left:auto;flex-shrink:0;}
+.p1{background:#2a0d0d;color:#f87171;border:0.5px solid #4a1a1a;}
+.p2{background:#2a1f0d;color:#fbbf24;border:0.5px solid #4a3a1a;}
+.p3{background:#1a1a1a;color:#666;border:0.5px solid #2a2a2a;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+.mcard{background:#1a1a1a;border-radius:10px;padding:13px 15px;}
+.mlbl{font-size:10px;color:#555;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;}
+.mval{font-size:24px;font-weight:500;color:#e8e8e6;}
+.msub{font-size:11px;color:#555;margin-top:2px;}
+.cal-hdr-row{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:4px;}
+.cal-hdr-row span{font-size:10px;color:#555;text-align:center;padding:2px;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
+.cday{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:6px;font-size:12px;cursor:pointer;}
+.cday:hover{background:#1e1e1e;}
+.cday.today{background:#1e1e1e;border:0.5px solid #444;font-weight:500;}
+.cday.other-m{color:#2a2a2a;}
+.cday.sel{background:#1a2a3a;border:0.5px solid #2a4a6a;}
+.edot{width:4px;height:4px;border-radius:50%;margin:1px auto 0;}
+.ecard{border-radius:0 8px 8px 0;padding:10px 12px;margin-bottom:7px;}
+.pbg{height:5px;background:#1e1e1e;border-radius:3px;overflow:hidden;margin-top:7px;}
+.pfill{height:100%;border-radius:3px;}
+.tag-pill{display:inline-block;padding:4px 10px;border-radius:20px;font-size:12px;background:#1a1a1a;color:#666;border:0.5px solid #222;margin:3px;}
+.tag-pill.on{background:#0d2a1f;color:#4ade80;border-color:#1a4a30;}
+.arow{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:0.5px solid #1e1e1e;}
+.arow:last-child{border-bottom:none;}
+input[type=text]{background:#161616;border:0.5px solid #333;border-radius:8px;color:#e8e8e6;font-size:13px;padding:9px 12px;width:100%;outline:none;margin-bottom:8px;}
+input[type=text]:focus{border-color:#555;}
+select{background:#161616;border:0.5px solid #333;border-radius:8px;color:#e8e8e6;font-size:12px;padding:6px 8px;outline:none;}
+textarea{background:#161616;border:0.5px solid #333;border-radius:8px;color:#e8e8e6;font-size:13px;padding:10px 12px;width:100%;min-height:130px;resize:vertical;outline:none;line-height:1.65;}
+textarea:focus{border-color:#555;}
+.btn{background:#1e1e1e;border:0.5px solid #333;color:#e8e8e6;border-radius:8px;padding:8px 14px;font-size:13px;cursor:pointer;}
+.btn:hover{background:#2a2a2a;}
+.btn-sm{background:transparent;border:0.5px solid #2a2a2a;color:#666;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;}
+.btn-sm:hover{color:#e8e8e6;border-color:#555;}
+.loading{padding:28px 0;text-align:center;color:#555;font-size:13px;}
+.spin{display:inline-block;width:16px;height:16px;border:1.5px solid #333;border-top-color:#888;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 10px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.err{color:#f87171;font-size:13px;padding:14px 0;line-height:1.7;}
+.cwrap{position:relative;width:100%;height:190px;margin:10px 0;}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:#666;margin-top:4px;}
+.legend span{display:flex;align-items:center;gap:5px;}
+.ldot{width:10px;height:10px;border-radius:2px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="hdr">
+  <div class="hdr-l">
+    <div class="sup">Stano HQ</div>
+    <div class="ttl" id="greeting">Good evening, Stano</div>
+  </div>
+  <div class="hdr-r">
+    <div class="dt" id="hdr-date"></div>
+    <div class="sb" id="hdr-sub"></div>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tb active" onclick="sw('habits',this)">Habits</button>
+  <button class="tb" onclick="sw('tasks',this)">Tasks</button>
+  <button class="tb" onclick="sw('health',this)">Health</button>
+  <button class="tb" onclick="sw('cal',this)">Calendar</button>
+  <button class="tb" onclick="sw('fin',this)">Finances</button>
+  <button class="tb" onclick="sw('meals',this)">Meals</button>
+  <button class="tb" onclick="sw('notes',this)">Notes</button>
+  <button class="tb" onclick="sw('exist',this)">Exist</button>
+</div>
+
+<!-- HABITS -->
+<div id="tab-habits" class="sec active">
+  <div id="habit-list"></div>
+  <div style="display:flex;gap:8px;margin-top:10px">
+    <input type="text" id="new-habit" placeholder="New habit..." style="margin:0;flex:1">
+    <button class="btn" onclick="addHabit()">Add</button>
+  </div>
+</div>
+
+<!-- TASKS -->
+<div id="tab-tasks" class="sec">
+  <div id="task-list"></div>
+  <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
+    <input type="text" id="new-task" placeholder="New task..." style="margin:0;flex:1">
+    <select id="task-prio"><option value="1">High</option><option value="2" selected>Med</option><option value="3">Low</option></select>
+    <button class="btn" onclick="addTask()">Add</button>
+  </div>
+</div>
+
+<!-- HEALTH -->
+<div id="tab-health" class="sec">
+  <div class="grid2">
+    <div class="mcard"><div class="mlbl">Steps</div><div class="mval" id="h-steps">—</div><div class="msub">today</div></div>
+    <div class="mcard"><div class="mlbl">Sleep</div><div class="mval" id="h-sleep">—</div><div class="msub">last night</div></div>
+    <div class="mcard"><div class="mlbl">Heart rate</div><div class="mval" id="h-hr">—</div><div class="msub">bpm avg</div></div>
+    <div class="mcard"><div class="mlbl">Weight</div><div class="mval" id="h-weight">—</div><div class="msub">kg</div></div>
+  </div>
+  <div class="slbl">Log today</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <input type="text" id="l-steps" placeholder="Steps" style="margin:0;width:90px">
+    <input type="text" id="l-sleep" placeholder="Sleep h" style="margin:0;width:75px">
+    <input type="text" id="l-hr" placeholder="HR bpm" style="margin:0;width:75px">
+    <input type="text" id="l-weight" placeholder="kg" style="margin:0;width:65px">
+    <button class="btn" onclick="logHealth()">Save</button>
+  </div>
+</div>
+
+<!-- CALENDAR -->
+<div id="tab-cal" class="sec">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+    <button class="btn-sm" onclick="changeMonth(-1)">← Prev</button>
+    <span id="cal-month" style="font-size:14px;font-weight:500;color:#e8e8e6"></span>
+    <button class="btn-sm" onclick="changeMonth(1)">Next →</button>
+  </div>
+  <div class="cal-hdr-row"><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span></div>
+  <div class="cal-grid" id="cal-days"></div>
+  <div style="margin-top:14px">
+    <div class="slbl" id="cal-sel-lbl"></div>
+    <div id="cal-ev-list"></div>
+  </div>
+</div>
+
+<!-- FINANCES -->
+<div id="tab-fin" class="sec">
+  <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:12px">
+    <div>
+      <div class="slbl" style="margin:0 0 4px">Monthly budget</div>
+      <div id="fin-total" style="font-size:22px;font-weight:500;color:#e8e8e6">€0 / €0</div>
+    </div>
+    <div id="fin-left" style="font-size:12px;color:#555"></div>
+  </div>
+  <div id="fin-list"></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+    <input type="text" id="fin-cat" placeholder="Category" style="margin:0;flex:1;min-width:100px">
+    <input type="text" id="fin-spent" placeholder="Spent €" style="margin:0;width:78px">
+    <input type="text" id="fin-budget" placeholder="Budget €" style="margin:0;width:78px">
+    <button class="btn" onclick="addFinCat()">Add</button>
+  </div>
+</div>
+
+<!-- MEALS -->
+<div id="tab-meals" class="sec"><div id="meal-list"></div></div>
+
+<!-- NOTES -->
+<div id="tab-notes" class="sec">
+  <div class="slbl">Brain dump</div>
+  <textarea id="notes-ta" placeholder="Anything on your mind..."></textarea>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
+    <div id="notes-count" style="font-size:11px;color:#555">0 words</div>
+    <button class="btn btn-sm" onclick="saveNotes()">Save</button>
+  </div>
+</div>
+
+<!-- EXIST -->
+<div id="tab-exist" class="sec">
+  <div class="tabs" style="border-bottom:0.5px solid #222;padding-bottom:10px;margin-bottom:14px;">
+    <button class="tb active" onclick="exSw('exov',this)">Overview</button>
+    <button class="tb" onclick="exSw('exmood',this)">Mood & Energy</button>
+    <button class="tb" onclick="exSw('exact',this)">Activity</button>
+    <button class="tb" onclick="exSw('exslp',this)">Sleep</button>
+    <button class="tb" onclick="exSw('extag',this)">Tags</button>
+  </div>
+
+  <div id="tab-exov" class="sec active">
+    <div id="exov-ld" class="loading"><div class="spin"></div><br>Loading from Exist.io...</div>
+    <div id="exov-ct" style="display:none">
+      <div class="grid2">
+        <div class="mcard"><div class="mlbl">Mood</div><div class="mval" id="exov-mood">—</div><div class="msub">out of 9</div></div>
+        <div class="mcard"><div class="mlbl">Energy</div><div class="mval" id="exov-energy">—</div><div class="msub">out of 9</div></div>
+        <div class="mcard"><div class="mlbl">Steps</div><div class="mval" id="exov-steps">—</div><div class="msub">today</div></div>
+        <div class="mcard"><div class="mlbl">Sleep</div><div class="mval" id="exov-sleep">—</div><div class="msub">last night</div></div>
+      </div>
+      <div style="margin-bottom:14px"><div class="slbl">Today's tags</div><div id="exov-tags"></div></div>
+      <div><div class="slbl">All attributes</div><div id="exov-attrs"></div></div>
+    </div>
+    <div id="exov-er" class="err" style="display:none"></div>
+  </div>
+
+  <div id="tab-exmood" class="sec">
+    <div id="exm-ld" class="loading"><div class="spin"></div><br>Loading...</div>
+    <div id="exm-ct" style="display:none">
+      <div class="slbl">Last 7 days — mood & energy</div>
+      <div class="cwrap"><canvas id="mood-chart"></canvas></div>
+      <div class="legend"><span><span class="ldot" style="background:#7F77DD"></span>Mood</span><span><span class="ldot" style="background:#1D9E75"></span>Energy</span></div>
+      <div style="margin-top:14px"><div class="slbl">Weekly averages</div><div id="exm-avgs"></div></div>
+    </div>
+    <div id="exm-er" class="err" style="display:none"></div>
+  </div>
+
+  <div id="tab-exact" class="sec">
+    <div id="exa-ld" class="loading"><div class="spin"></div><br>Loading...</div>
+    <div id="exa-ct" style="display:none">
+      <div class="slbl">Steps — last 7 days</div>
+      <div class="cwrap"><canvas id="steps-chart"></canvas></div>
+      <div id="exa-attrs" style="margin-top:14px"></div>
+    </div>
+    <div id="exa-er" class="err" style="display:none"></div>
+  </div>
+
+  <div id="tab-exslp" class="sec">
+    <div id="exs-ld" class="loading"><div class="spin"></div><br>Loading...</div>
+    <div id="exs-ct" style="display:none">
+      <div class="slbl">Sleep — last 7 days (hours)</div>
+      <div class="cwrap"><canvas id="sleep-chart"></canvas></div>
+      <div id="exs-attrs" style="margin-top:14px"></div>
+    </div>
+    <div id="exs-er" class="err" style="display:none"></div>
+  </div>
+
+  <div id="tab-extag" class="sec">
+    <div id="ext-ld" class="loading"><div class="spin"></div><br>Loading...</div>
+    <div id="ext-ct" style="display:none">
+      <div class="slbl">Today's tags</div>
+      <div id="ext-today" style="margin-bottom:16px"></div>
+      <div class="slbl">This week (frequency)</div>
+      <div id="ext-recent"></div>
+    </div>
+    <div id="ext-er" class="err" style="display:none"></div>
+  </div>
+</div>
+
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const show=id=>$(id).style.display='block';
+const hide=id=>$(id).style.display='none';
+const now=new Date();
+const todayStr=now.toISOString().slice(0,10);
+const DOW=now.getDay();
+const hr=now.getHours();
+$('greeting').textContent=(hr<12?'Good morning':hr<18?'Good afternoon':'Good evening')+', Stano';
+$('hdr-date').textContent=now.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
+$('hdr-sub').textContent=(DOW===2||DOW===5)?'Water plants today 🌿':'';
+
+function sw(id,btn){
+  document.querySelectorAll('.wrap>.sec').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.wrap>.tabs .tb').forEach(b=>b.classList.remove('active'));
+  $('tab-'+id).classList.add('active');btn.classList.add('active');
+  if(id==='exist'&&!existStarted){existStarted=true;loadExOv();}
+}
+
+/* ── HABITS ── */
+const DEF_H=[{id:1,name:'Water plants',days:[2,5],done:false},{id:2,name:'Read',days:[0,1,2,3,4,5,6],done:false},{id:3,name:'Exercise',days:[1,3,5],done:false},{id:4,name:'Journal',days:[0,1,2,3,4,5,6],done:false}];
+let habits=JSON.parse(localStorage.getItem('hq-habits')||'null')||DEF_H;
+const saveH=()=>localStorage.setItem('hq-habits',JSON.stringify(habits));
+function renderH(){
+  const td=habits.filter(h=>h.days.includes(DOW)),ot=habits.filter(h=>!h.days.includes(DOW));
+  let html='';
+  if(td.length){html+='<div class="slbl">Today</div>';td.forEach(h=>html+=`<div class="row" onclick="togH(${h.id})"><div class="circle ${h.done?'done':''}">${h.done?'✓':''}</div><span style="font-size:14px;flex:1;color:${h.done?'#555':'#e8e8e6'};${h.done?'text-decoration:line-through':''}">${h.name}</span><button class="btn-sm" onclick="event.stopPropagation();delH(${h.id})">×</button></div>`);}
+  if(ot.length){html+='<div class="slbl" style="margin-top:14px">Not today</div>';ot.forEach(h=>html+=`<div class="row" style="opacity:0.35;cursor:default"><div class="circle skip"></div><span style="font-size:14px;color:#555">${h.name}</span></div>`);}
+  $('habit-list').innerHTML=html;
+}
+function togH(id){habits=habits.map(h=>h.id===id?{...h,done:!h.done}:h);saveH();renderH();}
+function delH(id){habits=habits.filter(h=>h.id!==id);saveH();renderH();}
+function addHabit(){const v=$('new-habit').value.trim();if(!v)return;habits.push({id:Date.now(),name:v,days:[0,1,2,3,4,5,6],done:false});$('new-habit').value='';saveH();renderH();}
+
+/* ── TASKS ── */
+let tasks=JSON.parse(localStorage.getItem('hq-tasks')||'[]');
+const saveT=()=>localStorage.setItem('hq-tasks',JSON.stringify(tasks));
+function renderT(){$('task-list').innerHTML=[...tasks].sort((a,b)=>a.prio-b.prio).map(t=>`<div class="row"><div class="sq ${t.done?'done':''}" onclick="togT(${t.id})">${t.done?'✓':''}</div><span style="font-size:13px;flex:1;color:${t.done?'#444':'#e8e8e6'};${t.done?'text-decoration:line-through':''}">${t.name}</span><span class="badge ${t.prio===1?'p1':t.prio===2?'p2':'p3'}">${t.prio===1?'High':t.prio===2?'Med':'Low'}</span><button class="btn-sm" onclick="delT(${t.id})" style="margin-left:6px">×</button></div>`).join('')||'<div style="color:#444;font-size:13px;padding:10px 0">No tasks yet.</div>';}
+function togT(id){tasks=tasks.map(t=>t.id===id?{...t,done:!t.done}:t);saveT();renderT();}
+function delT(id){tasks=tasks.filter(t=>t.id!==id);saveT();renderT();}
+function addTask(){const v=$('new-task').value.trim();if(!v)return;tasks.push({id:Date.now(),name:v,prio:parseInt($('task-prio').value),done:false});$('new-task').value='';saveT();renderT();}
+
+/* ── HEALTH ── */
+let hData=JSON.parse(localStorage.getItem('hq-health')||'{}');
+function renderHL(){$('h-steps').textContent=hData.steps?Number(hData.steps).toLocaleString():'—';$('h-sleep').textContent=hData.sleep?hData.sleep+'h':'—';$('h-hr').textContent=hData.hr||'—';$('h-weight').textContent=hData.weight||'—';}
+function logHealth(){if($('l-steps').value)hData.steps=$('l-steps').value;if($('l-sleep').value)hData.sleep=$('l-sleep').value;if($('l-hr').value)hData.hr=$('l-hr').value;if($('l-weight').value)hData.weight=$('l-weight').value;localStorage.setItem('hq-health',JSON.stringify(hData));['l-steps','l-sleep','l-hr','l-weight'].forEach(id=>$(id).value='');renderHL();}
+
+/* ── CALENDAR ── */
+const CAL_EVENTS=[
+  {date:'2026-03-28',title:'Lábusovky 2026',time:'17:00',loc:'Dobroměřice',type:'event'},
+  {date:'2026-03-29',title:'Meniny: Dedko Miro',time:'All day',type:'birthday'},
+  {date:'2026-04-17',title:'Meniny: Barok Rudy',time:'All day',type:'birthday'},
+  {date:'2026-04-18',title:'Pavel Zajíček 75',time:'17:00',loc:'La Fabrika',type:'event'},
+  {date:'2026-04-25',title:'Meniny: Marek Adamustin',time:'All day',type:'birthday'},
+  {date:'2026-04-25',title:'THE UNDERGROUND BIRTHDAY PARTY',time:'16:00',loc:'Teplá',type:'event'},
+  {date:'2026-05-01',title:"Samuel Mišovich's birthday",time:'All day',type:'birthday'},
+  {date:'2026-05-01',title:'Sviatok práce',time:'All day',type:'holiday'},
+  {date:'2026-05-05',title:"Dedko Miro's birthday",time:'All day',type:'birthday'},
+  {date:'2026-05-08',title:'Víťazstvo nad fašizmom',time:'All day',type:'holiday'},
+];
+const TC={event:'#7F77DD',birthday:'#E24B4A',holiday:'#1D9E75'};
+const TBG={event:'rgba(127,119,221,0.15)',birthday:'rgba(226,75,74,0.15)',holiday:'rgba(29,158,117,0.15)'};
+let calY=now.getFullYear(),calM=now.getMonth(),selDate=null;
+const MN=['January','February','March','April','May','June','July','August','September','October','November','December'];
+function renderCal(){
+  $('cal-month').textContent=MN[calM]+' '+calY;
+  const first=new Date(calY,calM,1),startDay=(first.getDay()+6)%7,dim=new Date(calY,calM+1,0).getDate(),prev=new Date(calY,calM,0).getDate();
+  let html='';
+  for(let i=0;i<startDay;i++)html+=`<div class="cday other-m"><span>${prev-startDay+i+1}</span></div>`;
+  for(let d=1;d<=dim;d++){const ds=`${calY}-${String(calM+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;const evs=CAL_EVENTS.filter(e=>e.date===ds);html+=`<div class="cday ${ds===todayStr?'today':''} ${ds===selDate?'sel':''}" onclick="selDay('${ds}')"><span>${d}</span>${evs.slice(0,2).map(e=>`<div class="edot" style="background:${TC[e.type]}"></div>`).join('')}</div>`;}
+  const rem=(7-(startDay+dim)%7)%7;for(let i=1;i<=rem;i++)html+=`<div class="cday other-m"><span>${i}</span></div>`;
+  $('cal-days').innerHTML=html;if(selDate)showCalEvs(selDate);
+}
+function selDay(ds){selDate=selDate===ds?null:ds;renderCal();}
+function showCalEvs(ds){const evs=CAL_EVENTS.filter(e=>e.date===ds);const d=new Date(ds+'T12:00:00');$('cal-sel-lbl').textContent=d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})+' — '+(evs.length?evs.length+' event'+(evs.length>1?'s':''):'No events');$('cal-ev-list').innerHTML=evs.map(e=>`<div class="ecard" style="background:${TBG[e.type]};border-left:2px solid ${TC[e.type]}"><div style="font-size:14px;font-weight:500;color:#e8e8e6;margin-bottom:2px">${e.title}</div><div style="font-size:12px;color:#666">${e.time}${e.loc?'  ·  '+e.loc:''}</div></div>`).join('');}
+function changeMonth(d){calM+=d;if(calM>11){calM=0;calY++;}if(calM<0){calM=11;calY--;}selDate=null;$('cal-sel-lbl').textContent='';$('cal-ev-list').innerHTML='';renderCal();}
+
+/* ── FINANCES ── */
+let finCats=JSON.parse(localStorage.getItem('hq-fin')||'null')||[{id:1,name:'Rent',spent:650,budget:650},{id:2,name:'Food',spent:180,budget:250},{id:3,name:'Transport',spent:45,budget:80},{id:4,name:'Entertainment',spent:60,budget:100},{id:5,name:'Health',spent:20,budget:50}];
+const saveF=()=>localStorage.setItem('hq-fin',JSON.stringify(finCats));
+function renderF(){const ts=finCats.reduce((a,c)=>a+c.spent,0),tb=finCats.reduce((a,c)=>a+c.budget,0);$('fin-total').textContent=`€${ts} / €${tb}`;$('fin-left').textContent=`€${tb-ts} remaining`;$('fin-list').innerHTML=finCats.map(c=>{const pct=Math.min(100,Math.round(c.spent/c.budget*100)),col=pct>90?'#f87171':pct>70?'#fbbf24':'#1D9E75';return`<div class="card" style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:13px;color:#e8e8e6">${c.name}</span><span style="font-size:12px;color:#666">€${c.spent} / €${c.budget}</span></div><div class="pbg"><div class="pfill" style="width:${pct}%;background:${col}"></div></div></div>`;}).join('');}
+function addFinCat(){const n=$('fin-cat').value.trim(),s=parseFloat($('fin-spent').value)||0,b=parseFloat($('fin-budget').value)||0;if(!n||!b)return;finCats.push({id:Date.now(),name:n,spent:s,budget:b});['fin-cat','fin-spent','fin-budget'].forEach(id=>$(id).value='');saveF();renderF();}
+
+/* ── MEALS ── */
+const MEALS=[{day:'Monday',b:'Oatmeal + banana',l:'Chicken salad',d:'Pasta with veggies'},{day:'Tuesday',b:'Yogurt + granola',l:'Soup + bread',d:'Rice with fish'},{day:'Wednesday',b:'Eggs + toast',l:'Leftovers',d:'Lentil curry'},{day:'Thursday',b:'Smoothie bowl',l:'Tuna wrap',d:'Steak + potatoes'},{day:'Friday',b:'Pancakes',l:'Caesar salad',d:'Pizza night'},{day:'Saturday',b:'Brunch',l:'—',d:'Grilled chicken'},{day:'Sunday',b:'—',l:'—',d:'Sunday roast'}];
+const EN_DAYS=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+function renderMeals(){$('meal-list').innerHTML=MEALS.map(m=>{const isT=m.day===EN_DAYS[DOW];return`<div class="card" style="${isT?'border-color:#333':''}"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="font-size:13px;font-weight:500;color:#e8e8e6">${m.day}</span>${isT?'<span style="font-size:10px;padding:2px 8px;border-radius:20px;background:#1e1e1e;color:#888">Today</span>':''}</div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-size:11px">${['B','L','D'].map((lbl,i)=>`<div style="background:#1a1a1a;border-radius:6px;padding:6px 8px"><div style="color:#555;margin-bottom:2px">${lbl}</div><div style="color:#aaa">${[m.b,m.l,m.d][i]}</div></div>`).join('')}</div></div>`;}).join('');}
+
+/* ── NOTES ── */
+$('notes-ta').value=localStorage.getItem('hq-notes')||'';
+function updCount(){const w=$('notes-ta').value.trim().split(/\s+/).filter(Boolean).length;$('notes-count').textContent=w+' word'+(w!==1?'s':'');}
+$('notes-ta').addEventListener('input',updCount);
+function saveNotes(){localStorage.setItem('hq-notes',$('notes-ta').value);}
+
+/* ── EXIST.IO — direct API, works from https:// (Netlify) ── */
+const EX_TOKEN='e3e663d4892217654ab94bbf242428d11eaf1105';
+const EX_BASE='https://exist.io/api/2';
+let existStarted=false,mL=false,aL=false,sL=false,tL=false;
+
+function last7(){const a=[];for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);a.push(d.toISOString().slice(0,10));}return a;}
+function fmtSlp(m){if(!m)return'—';return Math.floor(m/60)+'h'+(m%60?m%60+'m':'');}
+function dlbl(ds){return new Date(ds+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short'});}
+function gmap(res,n){const a=res.find(r=>r.attribute===n);if(!a)return{};const m={};(a.values||[]).forEach(v=>m[v.date]=v.value);return m;}
+
+async function exFetch(names,dmin,dmax){
+  const p=new URLSearchParams({attributes:names.join(','),date_min:dmin,date_max:dmax,limit:200});
+  const r=await fetch(`${EX_BASE}/attributes/with-values/?${p}`,{headers:{'Authorization':'Token '+EX_TOKEN}});
+  if(!r.ok)throw new Error('Exist API '+r.status);
+  return r.json();
+}
+
+function exSw(id,btn){
+  document.querySelectorAll('#tab-exist .sec').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('#tab-exist .tabs .tb').forEach(b=>b.classList.remove('active'));
+  $('tab-'+id).classList.add('active');btn.classList.add('active');
+  if(id==='exmood'&&!mL){mL=true;loadExMood();}
+  if(id==='exact'&&!aL){aL=true;loadExAct();}
+  if(id==='exslp'&&!sL){sL=true;loadExSlp();}
+  if(id==='extag'&&!tL){tL=true;loadExTag();}
+}
+
+async function loadExOv(){
+  try{
+    const d7=last7(),td=d7[d7.length-1];
+    const data=await exFetch(['mood','energy','steps','sleep','custom'],td,td);
+    hide('exov-ld');
+    const res=data.results||[];
+    const get=n=>{const a=res.find(r=>r.attribute===n);return a&&a.values&&a.values[0]?a.values[0].value:null;};
+    $('exov-mood').textContent=get('mood')!=null?Math.round(get('mood')):'—';
+    $('exov-energy').textContent=get('energy')!=null?Math.round(get('energy')):'—';
+    $('exov-steps').textContent=get('steps')!=null?Number(get('steps')).toLocaleString('en-GB'):'—';
+    $('exov-sleep').textContent=fmtSlp(get('sleep'));
+    const bools=res.filter(r=>r.value_type_description==='Boolean');
+    const on=bools.filter(r=>r.values&&r.values[0]&&r.values[0].value===1);
+    const off=bools.filter(r=>r.values&&r.values[0]&&r.values[0].value===0);
+    $('exov-tags').innerHTML=(on.length||off.length)?[...on.map(t=>`<span class="tag-pill on">${t.label}</span>`),...off.slice(0,10).map(t=>`<span class="tag-pill">${t.label}</span>`)].join(''):'<span style="color:#555;font-size:13px">No tags logged today</span>';
+    const others=res.filter(r=>!['mood','energy','steps','sleep'].includes(r.attribute)&&r.value_type_description!=='Boolean'&&r.values&&r.values[0]&&r.values[0].value!=null);
+    $('exov-attrs').innerHTML=others.slice(0,12).map(a=>{const v=a.values[0].value;const d=a.value_type_description==='Period (minutes)'?fmtSlp(v):typeof v==='number'?Number(v).toLocaleString('en-GB'):v;return`<div class="arow"><span style="font-size:13px;color:#888">${a.label}</span><span style="font-size:13px;font-weight:500;color:#e8e8e6">${d}</span></div>`;}).join('')||'<div style="color:#555;font-size:13px">No additional data today</div>';
+    show('exov-ct');
+  }catch(e){hide('exov-ld');$('exov-er').textContent='Could not load Exist data: '+e.message;show('exov-er');}
+}
+
+async function loadExMood(){
+  try{
+    const d7=last7();const data=await exFetch(['mood','energy'],d7[0],d7[6]);hide('exm-ld');
+    const res=data.results||[];const mm=gmap(res,'mood'),em=gmap(res,'energy');
+    const labels=d7.map(dlbl),md=d7.map(d=>mm[d]??null),ed=d7.map(d=>em[d]??null);
+    new Chart($('mood-chart'),{type:'line',data:{labels,datasets:[{data:md,borderColor:'#7F77DD',backgroundColor:'rgba(127,119,221,0.08)',tension:0.3,pointRadius:4,pointBackgroundColor:'#7F77DD',spanGaps:true},{data:ed,borderColor:'#1D9E75',backgroundColor:'rgba(29,158,117,0.08)',tension:0.3,pointRadius:4,pointBackgroundColor:'#1D9E75',spanGaps:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{min:0,max:9,ticks:{stepSize:1,color:'#555'},grid:{color:'#1e1e1e'}},x:{ticks:{color:'#555'},grid:{display:false}}}}});
+    const am=md.filter(v=>v!=null),ae=ed.filter(v=>v!=null);
+    $('exm-avgs').innerHTML=`<div class="arow"><span style="font-size:13px;color:#888">Avg mood</span><span style="font-size:13px;font-weight:500;color:#e8e8e6">${am.length?(am.reduce((a,b)=>a+b,0)/am.length).toFixed(1):'—'} / 9</span></div><div class="arow"><span style="font-size:13px;color:#888">Avg energy</span><span style="font-size:13px;font-weight:500;color:#e8e8e6">${ae.length?(ae.reduce((a,b)=>a+b,0)/ae.length).toFixed(1):'—'} / 9</span></div>`;
+    show('exm-ct');
+  }catch(e){hide('exm-ld');$('exm-er').textContent='Could not load: '+e.message;show('exm-er');}
+}
+
+async function loadExAct(){
+  try{
+    const d7=last7();const data=await exFetch(['steps','steps_active_min','floors_climbed'],d7[0],d7[6]);hide('exa-ld');
+    const res=data.results||[];const sm=gmap(res,'steps'),am=gmap(res,'steps_active_min'),fm=gmap(res,'floors_climbed');
+    new Chart($('steps-chart'),{type:'bar',data:{labels:d7.map(dlbl),datasets:[{data:d7.map(d=>sm[d]??0),backgroundColor:'rgba(29,158,117,0.4)',borderColor:'#1D9E75',borderWidth:1,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{callback:v=>v>=1000?(v/1000)+'k':v,color:'#555'},grid:{color:'#1e1e1e'}},x:{ticks:{color:'#555'},grid:{display:false}}}}});
+    const td=d7[d7.length-1];
+    $('exa-attrs').innerHTML=`<div class="slbl">Today</div><div class="arow"><span style="font-size:13px;color:#888">Steps</span><span style="font-size:13px;font-weight:500;color:#e8e8e6">${sm[td]!=null?Number(sm[td]).toLocaleString('en-GB'):'—'}</span></div><div class="arow"><span style="font-size:13px;color:#888">Active minutes</span><span style="font-size:13px;font-weight:500;color:#e8e8e6">${am[td]!=null?am[td]+' min':'—'}</span></div><div class="arow"><span style="font-size:13px;color:#888">Floors climbed</span><span style="font-size:13px;font-weight:500;color:#e8e8e6">${fm[td]??'—'}</span></div>`;
+    show('exa-ct');
+  }catch(e){hide('exa-ld');$('exa-er').textContent='Could not load: '+e.message;show('exa-er');}
+}
+
+async function loadExSlp(){
+  try{
+    const d7=last7();const data=await exFetch(['sleep','sleep_quality'],d7[0],d7[6]);hide('exs-ld');
+    const res=data.results||[];const slm=gmap(res,'sleep'),qm=gmap(res,'sleep_quality');
+    new Chart($('sleep-chart'),{type:'bar',data:{labels:d7.map(dlbl),datasets:[{data:d7.map(d=>slm[d]!=null?+(slm[d]/60).toFixed(1):null),backgroundColor:'rgba(127,119,221,0.4)',borderColor:'#7F77DD',borderWidth:1,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{callback:v=>v+'h',color:'#555'},grid:{color:'#1e1e1e'}},x:{ticks:{color:'#555'},grid:{display:false}}}}});
+    const td=d7[d7.length-1],yd=d7[d7.length-2];
+    $('exs-attrs').innerHTML=`<div class="slbl">Recent nights</div><div class="arow"><span style="font-size:13px;color:#888">Last night</span><span style="font-size:13px;font-weight:500;color:#e8e8e6">${fmtSlp(slm[td])}</span></div><div class="arow"><span style="font-size:13px;color:#888">Sleep quality</span><span style="font-size:13px;font-weight:500;color:#e8e8e6">${qm[td]!=null?qm[td]+' / 5':'—'}</span></div><div class="arow"><span style="font-size:13px;color:#888">Night before</span><span style="font-size:13px;font-weight:500;color:#e8e8e6">${fmtSlp(slm[yd])}</span></div>`;
+    show('exs-ct');
+  }catch(e){hide('exs-ld');$('exs-er').textContent='Could not load: '+e.message;show('exs-er');}
+}
+
+async function loadExTag(){
+  try{
+    const d7=last7();const data=await exFetch(['custom'],d7[0],d7[6]);hide('ext-ld');
+    const res=data.results||[];const bools=res.filter(r=>r.value_type_description==='Boolean');
+    const td=d7[d7.length-1];
+    const on=bools.filter(a=>a.values&&a.values.find(v=>v.date===td&&v.value===1));
+    const off=bools.filter(a=>a.values&&a.values.find(v=>v.date===td&&v.value===0));
+    $('ext-today').innerHTML=(on.length||off.length)?[...on.map(a=>`<span class="tag-pill on">${a.label}</span>`),...off.map(a=>`<span class="tag-pill">${a.label}</span>`)].join(''):'<span style="color:#555;font-size:13px">No tags logged today</span>';
+    const freq={};bools.forEach(a=>{const c=(a.values||[]).filter(v=>v.value===1).length;if(c>0)freq[a.label]=c;});
+    const sorted=Object.entries(freq).sort((a,b)=>b[1]-a[1]);
+    $('ext-recent').innerHTML=sorted.length?sorted.map(([l,c])=>`<div class="arow"><span style="font-size:13px;color:#888">${l}</span><span style="font-size:12px;color:#555">${c}× this week</span></div>`).join(''):'<div style="color:#555;font-size:13px">No tags this week</div>';
+    show('ext-ct');
+  }catch(e){hide('ext-ld');$('ext-er').textContent='Could not load: '+e.message;show('ext-er');}
+}
+
+/* ── INIT ── */
+renderH();renderT();renderHL();renderCal();renderF();renderMeals();updCount();
+</script>
+</body>
+</html>
