@@ -97,6 +97,7 @@ textarea:focus{border-color:#555;}
   <button class="tb" onclick="sw('meals',this)">Meals</button>
   <button class="tb" onclick="sw('notes',this)">Notes</button>
   <button class="tb" onclick="sw('exist',this)">Exist</button>
+  <button class="tb" onclick="sw('withings',this)">Withings</button>
 </div>
 
 <!-- HABITS -->
@@ -251,6 +252,44 @@ textarea:focus{border-color:#555;}
 </div>
 
 </div>
+<!-- WITHINGS -->
+<div id="tab-withings" class="sec">
+  <h2>Withings Health Data</h2>
+  <div id="withings-auth-section">
+    <button onclick="connectWithings()" style="padding:10px 20px;background:#0099cc;color:white;border:none;border-radius:6px;cursor:pointer;font-size:16px;">Connect Withings</button>
+    <span id="withings-status" style="margin-left:10px;color:#888;"></span>
+  </div>
+  <div id="withings-data" style="display:none;margin-top:20px;">
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;">
+      <div class="card" style="background:#1a1a2e;padding:16px;border-radius:10px;">
+        <div style="color:#888;font-size:12px;">Weight</div>
+        <div id="w-weight" style="font-size:24px;font-weight:bold;color:#fff;">--</div>
+      </div>
+      <div class="card" style="background:#1a1a2e;padding:16px;border-radius:10px;">
+        <div style="color:#888;font-size:12px;">Body Fat %</div>
+        <div id="w-fat" style="font-size:24px;font-weight:bold;color:#fff;">--</div>
+      </div>
+      <div class="card" style="background:#1a1a2e;padding:16px;border-radius:10px;">
+        <div style="color:#888;font-size:12px;">Heart Rate</div>
+        <div id="w-hr" style="font-size:24px;font-weight:bold;color:#fff;">--</div>
+      </div>
+      <div class="card" style="background:#1a1a2e;padding:16px;border-radius:10px;">
+        <div style="color:#888;font-size:12px;">Blood Pressure</div>
+        <div id="w-bp" style="font-size:24px;font-weight:bold;color:#fff;">--</div>
+      </div>
+      <div class="card" style="background:#1a1a2e;padding:16px;border-radius:10px;">
+        <div style="color:#888;font-size:12px;">Steps Today</div>
+        <div id="w-steps" style="font-size:24px;font-weight:bold;color:#fff;">--</div>
+      </div>
+      <div class="card" style="background:#1a1a2e;padding:16px;border-radius:10px;">
+        <div style="color:#888;font-size:12px;">Sleep Last Night</div>
+        <div id="w-sleep" style="font-size:24px;font-weight:bold;color:#fff;">--</div>
+      </div>
+    </div>
+    <button onclick="loadWithingsData()" style="margin-top:16px;padding:8px 16px;background:#333;color:white;border:none;border-radius:6px;cursor:pointer;">Refresh Data</button>
+  </div>
+</div>
+
 <script>
 const $=id=>document.getElementById(id);
 const show=id=>$(id).style.display='block';
@@ -444,6 +483,112 @@ async function loadExTag(){
 
 /* ── INIT ── */
 renderH();renderT();renderHL();renderCal();renderF();renderMeals();updCount();
+
+
+// ===== WITHINGS INTEGRATION =====
+function connectWithings() {
+  window.location.href = '/.netlify/functions/withings-auth';
+}
+
+// Handle OAuth callback - check URL hash for tokens
+(function checkWithingsCallback() {
+  const hash = window.location.hash.substring(1);
+  if (hash.includes('withings_token=')) {
+    const params = new URLSearchParams(hash);
+    const token = params.get('withings_token');
+    const refresh = params.get('withings_refresh');
+    const expires = params.get('withings_expires');
+    const userid = params.get('withings_userid');
+    if (token) {
+      localStorage.setItem('withings_token', token);
+      localStorage.setItem('withings_refresh', refresh);
+      localStorage.setItem('withings_expires', expires);
+      localStorage.setItem('withings_userid', userid);
+      window.location.hash = '';
+      loadWithingsData();
+    }
+  }
+  // Check if already connected
+  if (localStorage.getItem('withings_token')) {
+    document.getElementById('withings-status').textContent = 'Connected';
+    document.getElementById('withings-status').style.color = '#4caf50';
+    document.getElementById('withings-data').style.display = 'block';
+    loadWithingsData();
+  }
+})();
+
+async function loadWithingsData() {
+  const token = localStorage.getItem('withings_token');
+  if (!token) return;
+
+  document.getElementById('withings-data').style.display = 'block';
+  document.getElementById('withings-status').textContent = 'Connected';
+  document.getElementById('withings-status').style.color = '#4caf50';
+
+  try {
+    // Fetch measurements (weight=1, fat%=6, HR=11, systolic=10, diastolic=9)
+    const measRes = await fetch('/.netlify/functions/withings-data?action=getmeas', {
+      headers: { Authorization: 'Bearer ' + token }
+    });
+    const measData = await measRes.json();
+
+    if (measData.status === 0 && measData.body && measData.body.measuregrps) {
+      const grps = measData.body.measuregrps;
+      let weight = null, fat = null, hr = null, systolic = null, diastolic = null;
+
+      for (const g of grps) {
+        for (const m of g.measures) {
+          const val = m.value * Math.pow(10, m.unit);
+          if (m.type === 1 && !weight) weight = val.toFixed(1) + ' kg';
+          if (m.type === 6 && !fat) fat = val.toFixed(1) + '%';
+          if (m.type === 11 && !hr) hr = Math.round(val) + ' bpm';
+          if (m.type === 10 && !systolic) systolic = Math.round(val);
+          if (m.type === 9 && !diastolic) diastolic = Math.round(val);
+        }
+      }
+
+      if (weight) document.getElementById('w-weight').textContent = weight;
+      if (fat) document.getElementById('w-fat').textContent = fat;
+      if (hr) document.getElementById('w-hr').textContent = hr;
+      if (systolic && diastolic) document.getElementById('w-bp').textContent = systolic + '/' + diastolic;
+    }
+
+    // Fetch activity (steps)
+    const actRes = await fetch('/.netlify/functions/withings-data?action=getactivity', {
+      headers: { Authorization: 'Bearer ' + token }
+    });
+    const actData = await actRes.json();
+
+    if (actData.status === 0 && actData.body && actData.body.activities) {
+      const activities = actData.body.activities;
+      if (activities.length > 0) {
+        const latest = activities[activities.length - 1];
+        document.getElementById('w-steps').textContent = (latest.steps || 0).toLocaleString();
+      }
+    }
+
+    // Fetch sleep
+    const sleepRes = await fetch('/.netlify/functions/withings-data?action=getsleep', {
+      headers: { Authorization: 'Bearer ' + token }
+    });
+    const sleepData = await sleepRes.json();
+
+    if (sleepData.status === 0 && sleepData.body && sleepData.body.series) {
+      const series = sleepData.body.series;
+      if (series.length > 0) {
+        const latest = series[series.length - 1];
+        const hours = ((latest.data && latest.data.total_sleep_time) || 0) / 3600;
+        document.getElementById('w-sleep').textContent = hours.toFixed(1) + ' hrs';
+      }
+    }
+  } catch (err) {
+    console.error('Withings data error:', err);
+    document.getElementById('withings-status').textContent = 'Error loading data';
+    document.getElementById('withings-status').style.color = '#f44336';
+  }
+}
+// ===== END WITHINGS =====
+
 </script>
 </body>
 </html>
