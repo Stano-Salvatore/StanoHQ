@@ -496,18 +496,20 @@ async function wCall(endpoint, params) {
 }
 
 (function checkWithingsCallback() {
-  const hash = window.location.hash.substring(1);
-  if (hash.includes('withings_token=')) {
-    const p = new URLSearchParams(hash);
-    const token = p.get('withings_token');
-    if (token) {
-      localStorage.setItem('withings_token', token);
-      localStorage.setItem('withings_refresh', p.get('withings_refresh'));
-      localStorage.setItem('withings_expires', p.get('withings_expires'));
-      localStorage.setItem('withings_userid', p.get('withings_userid'));
-      history.replaceState(null,'',window.location.pathname);
-      loadWithingsData();
-    }
+  const p = new URLSearchParams(window.location.search);
+  const token = p.get('withings_token');
+  if (token) {
+    localStorage.setItem('withings_token', token);
+    localStorage.setItem('withings_refresh', p.get('withings_refresh'));
+    localStorage.setItem('withings_expires', p.get('withings_expires'));
+    localStorage.setItem('withings_userid', p.get('withings_userid'));
+    history.replaceState(null,'',window.location.pathname);
+    // Switch to Withings tab
+    document.querySelectorAll('.wrap>.sec').forEach(s=>s.classList.remove('active'));
+    document.querySelectorAll('.wrap>.tabs .tb').forEach(b=>b.classList.remove('active'));
+    $('tab-withings').classList.add('active');
+    document.querySelector('.tb[onclick*="withings"]').classList.add('active');
+    loadWithingsData();
   }
   if (localStorage.getItem('withings_token')) {
     $('withings-status').textContent = 'Connected';
