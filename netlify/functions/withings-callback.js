@@ -4,7 +4,7 @@
 exports.handler = async (event, context) => {
   const CLIENT_ID = process.env.WITHINGS_CLIENT_ID;
   const CLIENT_SECRET = process.env.WITHINGS_CLIENT_SECRET;
-  const REDIRECT_URI = "https://healthconsolesalvatore.netlify.app/";
+  const REDIRECT_URI = "https://healthconsolesalvatore.netlify.app/.netlify/functions/withings-callback";
 
   const { code, error } = event.queryStringParameters || {};
 
