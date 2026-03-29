@@ -47,9 +47,9 @@ exports.handler = async (event, context) => {
 
     const { access_token, refresh_token, expires_in, userid } = data.body;
 
-    // Redirect back to HQ with tokens in URL fragment (never hits server)
+    // Redirect back to HQ with tokens as query params
     const redirectUrl =
-      `/#withings_token=${encodeURIComponent(access_token)}` +
+      `/?withings_token=${encodeURIComponent(access_token)}` +
       `&withings_refresh=${encodeURIComponent(refresh_token)}` +
       `&withings_expires=${Date.now() + expires_in * 1000}` +
       `&withings_userid=${userid}`;
