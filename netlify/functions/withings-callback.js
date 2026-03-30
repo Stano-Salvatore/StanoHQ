@@ -8,7 +8,11 @@ exports.handler = async (event, context) => {
 
   const { code, error } = event.queryStringParameters || {};
 
+  console.log("[withings-callback] Received:", { hasCode: !!code, error });
+  console.log("[withings-callback] Credentials present — CLIENT_ID:", !!CLIENT_ID, "CLIENT_SECRET:", !!CLIENT_SECRET);
+
   if (error) {
+    console.log("[withings-callback] Auth error from Withings:", error);
     return {
       statusCode: 302,
       headers: { Location: `/?withings_error=${encodeURIComponent(error)}` },
@@ -18,13 +22,23 @@ exports.handler = async (event, context) => {
 
   if (!code) {
     return {
-      statusCode: 400,
-      body: JSON.stringify({ error: "No authorization code received" }),
+      statusCode: 302,
+      headers: { Location: "/?withings_error=no_authorization_code" },
+      body: "",
+    };
+  }
+
+  if (!CLIENT_ID || !CLIENT_SECRET) {
+    console.error("[withings-callback] Missing WITHINGS_CLIENT_ID or WITHINGS_CLIENT_SECRET env vars!");
+    return {
+      statusCode: 302,
+      headers: { Location: "/?withings_error=missing_server_credentials" },
+      body: "",
     };
   }
 
   try {
-    const body = new URLSearchParams({
+    const formBody = new URLSearchParams({
       action: "requesttoken",
       grant_type: "authorization_code",
       client_id: CLIENT_ID,
@@ -33,26 +47,33 @@ exports.handler = async (event, context) => {
       redirect_uri: REDIRECT_URI,
     });
 
+    console.log("[withings-callback] Sending token request to Withings...");
     const response = await fetch("https://wbsapi.withings.net/v2/oauth2", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: body.toString(),
+      body: formBody.toString(),
     });
 
     const data = await response.json();
+    console.log("[withings-callback] Withings response status:", data.status, "| error field:", data.error);
 
     if (data.status !== 0) {
-      throw new Error(`Withings error: ${data.error}`);
+      throw new Error(`Withings API error ${data.status}: ${data.error || "unknown"}`);
     }
 
     const { access_token, refresh_token, expires_in, userid } = data.body;
 
-    // Redirect back to HQ with tokens as query params
+    if (!access_token) {
+      throw new Error("No access_token returned by Withings");
+    }
+
+    console.log("[withings-callback] Token exchange successful! userid:", userid);
+
     const redirectUrl =
       `/?withings_token=${encodeURIComponent(access_token)}` +
-      `&withings_refresh=${encodeURIComponent(refresh_token)}` +
-      `&withings_expires=${Date.now() + expires_in * 1000}` +
-      `&withings_userid=${userid}`;
+      `&withings_refresh=${encodeURIComponent(refresh_token || "")}` +
+      `&withings_expires=${Date.now() + (expires_in || 10800) * 1000}` +
+      `&withings_userid=${encodeURIComponent(userid || "")}`;
 
     return {
       statusCode: 302,
@@ -60,6 +81,7 @@ exports.handler = async (event, context) => {
       body: "",
     };
   } catch (err) {
+    console.error("[withings-callback] Token exchange failed:", err.message);
     return {
       statusCode: 302,
       headers: {
