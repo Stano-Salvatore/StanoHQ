@@ -1,10 +1,10 @@
 // netlify/functions/withings-data.js
-// Proxy to fetch Withings measurements (weight, body fat, heart rate, BP, steps, sleep)
+// Proxy: receives POST JSON {endpoint, params, access_token} → forwards to Withings API
 
 exports.handler = async (event, context) => {
   const headers = {
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Headers": "Content-Type",
     "Content-Type": "application/json"
   };
 
@@ -12,64 +12,47 @@ exports.handler = async (event, context) => {
     return { statusCode: 200, headers, body: "" };
   }
 
-  const authHeader = event.headers.authorization || event.headers.Authorization;
-  if (!authHeader) {
-    return { statusCode: 401, headers, body: JSON.stringify({ error: "No token" }) };
+  if (event.httpMethod !== "POST") {
+    return { statusCode: 405, headers, body: JSON.stringify({ error: "Method not allowed" }) };
   }
 
-  const token = authHeader.replace("Bearer ", "");
-  const { action, ...params } = event.queryStringParameters || {};
-
-  // Default: fetch measurements (weight, body fat, heart rate, BP)
-  const apiAction = action || "getmeas";
-  let url, body;
-
-  if (apiAction === "getmeas") {
-    url = "https://wbsapi.withings.net/measure";
-    const now = Math.floor(Date.now() / 1000);
-    const thirtyDaysAgo = now - 30 * 24 * 60 * 60;
-    body = new URLSearchParams({
-      action: "getmeas",
-      meastype: params.meastype || "1,6,11,10,9",
-      category: "1",
-      startdate: params.startdate || thirtyDaysAgo.toString(),
-      enddate: params.enddate || now.toString()
-    });
-  } else if (apiAction === "getactivity") {
-    url = "https://wbsapi.withings.net/v2/measure";
-    const today = new Date().toISOString().split("T")[0];
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
-    body = new URLSearchParams({
-      action: "getactivity",
-      startdateymd: params.startdateymd || thirtyDaysAgo,
-      enddateymd: params.enddateymd || today
-    });
-  } else if (apiAction === "getsleep") {
-    url = "https://wbsapi.withings.net/v2/sleep";
-    const now = Math.floor(Date.now() / 1000);
-    const sevenDaysAgo = now - 7 * 24 * 60 * 60;
-    body = new URLSearchParams({
-      action: "getsummary",
-      startdateymd: params.startdateymd || new Date((now - 7 * 24 * 60 * 60) * 1000).toISOString().split("T")[0],
-      enddateymd: params.enddateymd || new Date().toISOString().split("T")[0]
-    });
-  } else {
-    return { statusCode: 400, headers, body: JSON.stringify({ error: "Unknown action" }) };
+  let parsed;
+  try {
+    parsed = JSON.parse(event.body || "{}");
+  } catch (e) {
+    return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid JSON body" }) };
   }
+
+  const { endpoint, params, access_token } = parsed;
+
+  if (!access_token) {
+    return { statusCode: 401, headers, body: JSON.stringify({ error: "No access_token in request body" }) };
+  }
+
+  if (!endpoint) {
+    return { statusCode: 400, headers, body: JSON.stringify({ error: "No endpoint specified" }) };
+  }
+
+  const url = `https://wbsapi.withings.net${endpoint}`;
+  const formBody = new URLSearchParams(params || {});
+
+  console.log("[withings-data] Calling:", url, "action:", (params || {}).action);
 
   try {
     const response = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
-        Authorization: `Bearer ${token}`
+        "Authorization": `Bearer ${access_token}`
       },
-      body: body.toString()
+      body: formBody.toString()
     });
 
     const data = await response.json();
+    console.log("[withings-data] Response status:", data.status);
     return { statusCode: 200, headers, body: JSON.stringify(data) };
   } catch (err) {
+    console.error("[withings-data] Error:", err.message);
     return { statusCode: 500, headers, body: JSON.stringify({ error: err.message }) };
   }
 };
