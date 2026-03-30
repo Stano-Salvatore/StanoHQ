@@ -473,10 +473,10 @@ renderH();renderT();renderHL();renderCal();renderF();renderMeals();updCount();
 
 
 // ===== WITHINGS INTEGRATION =====
-const W_PROXY = '/.netlify/functions/withings-data';
+const W_PROXY = '/api/withings-data';
 
 function connectWithings() {
-  window.location.href = '/.netlify/functions/withings-auth';
+  window.location.href = '/api/withings-auth';
 }
 
 function withingsLogout() {
@@ -497,6 +497,18 @@ async function wCall(endpoint, params) {
 
 (function checkWithingsCallback() {
   const p = new URLSearchParams(window.location.search);
+  // Handle OAuth error redirect
+  const withingsError = p.get('withings_error');
+  if (withingsError) {
+    history.replaceState(null,'',window.location.pathname);
+    document.querySelectorAll('.wrap>.sec').forEach(s=>s.classList.remove('active'));
+    document.querySelectorAll('.wrap>.tabs .tb').forEach(b=>b.classList.remove('active'));
+    $('tab-withings').classList.add('active');
+    document.querySelector('.tb[onclick*="withings"]').classList.add('active');
+    $('withings-status').textContent = 'Auth failed: ' + decodeURIComponent(withingsError);
+    $('withings-status').style.color = '#f87171';
+    return;
+  }
   const token = p.get('withings_token');
   if (token) {
     localStorage.setItem('withings_token', token);
@@ -504,12 +516,12 @@ async function wCall(endpoint, params) {
     localStorage.setItem('withings_expires', p.get('withings_expires'));
     localStorage.setItem('withings_userid', p.get('withings_userid'));
     history.replaceState(null,'',window.location.pathname);
-    // Switch to Withings tab
     document.querySelectorAll('.wrap>.sec').forEach(s=>s.classList.remove('active'));
     document.querySelectorAll('.wrap>.tabs .tb').forEach(b=>b.classList.remove('active'));
     $('tab-withings').classList.add('active');
     document.querySelector('.tb[onclick*="withings"]').classList.add('active');
     loadWithingsData();
+    return;
   }
   if (localStorage.getItem('withings_token')) {
     $('withings-status').textContent = 'Connected';
