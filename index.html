@@ -323,39 +323,39 @@ async function loadWithings(force){
     const ydStr=d7[d7.length-2];
 
     const[actRes,measRes,sleepRes]=await Promise.all([
-      wCall('/v2/measure',{action:'getactivity',startdateymd:d7[0],enddateymd:d7[d7.length-1],data_fields:'steps'}),
+      wCall('/v2/measure',{action:'getactivity',startdateymd:d7[0],enddateymd:d7[d7.length-1],data_fields:'steps,heart_rate'}),
       wCall('/v2/measure',{action:'getmeas',meastypes:'1,11',category:1,startdate:weekAgoTs,enddate:tomorrowTs}),
       wCall('/v2/sleep',{action:'getsummary',startdateymd:ydStr,enddateymd:d7[d7.length-1],data_fields:'lightsleepduration,deepsleepduration,remsleepduration'})
     ]);
 
     // Steps
     const stepsByDate={};
-    if(actRes.status===0&&actRes.body?.activities)actRes.body.activities.forEach(a=>stepsByDate[a.date]=a.steps||0);
+    const hrByDate={};
+    if(actRes.status===0&&actRes.body?.activities)actRes.body.activities.forEach(a=>{stepsByDate[a.date]=a.steps||0;if(a.heart_rate)hrByDate[a.date]=a.heart_rate;});
     const todaySteps=stepsByDate[d7[d7.length-1]]||0;
     $('h-steps').textContent=todaySteps?Number(todaySteps).toLocaleString('en-GB'):'—';
     if(hStepsChart)hStepsChart.destroy();
     hStepsChart=new Chart($('h-steps-chart'),{type:'bar',data:{labels:d7.map(dlbl),datasets:[{data:d7.map(d=>stepsByDate[d]||0),backgroundColor:'rgba(29,158,117,0.4)',borderColor:'#1D9E75',borderWidth:1,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{callback:v=>v>=1000?(v/1000).toFixed(0)+'k':v,color:'#555'},grid:{color:'#1e1e1e'}},x:{ticks:{color:'#555'},grid:{display:false}}}}});
 
     // Weight & HR
-    let weight=null,hrVal=null;
-    const hrByDate={};
+    let weight=null;
     if(measRes.status===0&&measRes.body?.measuregrps){
       measRes.body.measuregrps.forEach(g=>{
-        const ds=new Date(g.date*1000).toISOString().slice(0,10);
         g.measures.forEach(m=>{
           const v=m.value*Math.pow(10,m.unit);
           if(m.type===1&&!weight)weight=v.toFixed(1);
-          if(m.type===11){if(!hrVal)hrVal=Math.round(v);if(!hrByDate[ds])hrByDate[ds]=[];hrByDate[ds].push(Math.round(v));}
         });
       });
     }
     $('h-weight').textContent=weight||'—';
-    $('h-hr').textContent=hrVal||'—';
-    const hrData=d7.map(d=>{const vals=hrByDate[d];return vals&&vals.length?Math.round(vals.reduce((a,b)=>a+b,0)/vals.length):null;});
+    const todayHr=hrByDate[d7[d7.length-1]]||null;
+    $('h-hr').textContent=todayHr||'—';
+    const hrData=d7.map(d=>hrByDate[d]||null);
     if(hHrChart)hHrChart.destroy();
     hHrChart=new Chart($('h-hr-chart'),{type:'line',data:{labels:d7.map(dlbl),datasets:[{data:hrData,borderColor:'#E24B4A',backgroundColor:'rgba(226,75,74,0.08)',tension:0.3,pointRadius:4,pointBackgroundColor:'#E24B4A',spanGaps:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{color:'#555'},grid:{color:'#1e1e1e'}},x:{ticks:{color:'#555'},grid:{display:false}}}}});
 
     // Sleep
+    console.log(sleepRes);
     const sleepByDate={};
     if(sleepRes.status===0&&sleepRes.body?.series){
       sleepRes.body.series.forEach(s=>{
