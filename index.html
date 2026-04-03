@@ -323,7 +323,7 @@ async function loadWithings(force){
     const ydStr=d7[d7.length-2];
 
     const[actRes,measRes,sleepRes]=await Promise.all([
-      wCall('/v2/measure',{action:'getactivity',startdateymd:d7[0],enddateymd:d7[d7.length-1],data_fields:'steps,heart_rate'}),
+      wCall('/v2/measure',{action:'getactivity',startdateymd:d7[0],enddateymd:d7[d7.length-1],data_fields:'steps'}),
       wCall('/v2/measure',{action:'getmeas',meastypes:'1,11',category:1,startdate:weekAgoTs,enddate:tomorrowTs}),
       wCall('/v2/sleep',{action:'getsummary',startdateymd:ydStr,enddateymd:d7[d7.length-1],data_fields:'lightsleepduration,deepsleepduration,remsleepduration'})
     ]);
